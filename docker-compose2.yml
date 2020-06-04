@@ -1,0 +1,64 @@
+version: "2.4"
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  jackett:
+    image: linuxserver/jackett:arm32v7-latest
+    container_name: jackett
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/jackett/config:/config
+      - ${USERDIR}/jackett/blackhole:/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+  
+  sonarr:
+    image: linuxserver/sonarr:arm32v7-latest
+    container_name: sonarr
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${USERDIR}/sonarr/data:/config
+      - ${USERSHAREDIR}/Video/Serie:/tv
+      - ${USERSHAREDIR}/Torrent/Serie:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    depends_on:
+      - jackett
+
+  radarr:
+    image: linuxserver/radarr:arm32v7-latest
+    container_name: radarr
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${USERDIR}/radarr/data:/config
+      - ${USERSHAREDIR}/Video/Movie:/movie
+      - ${USERSHAREDIR}/Video/MovieFR:/movieFr
+      - ${USERSHAREDIR}/Torrent/Movie:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    depends_on:
+      - jackett
+
+  traefik:
+    container_name: traefik
+    image: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - ${USERDIR}/traefik/traefik.toml:/traefik.toml
+      - ${USERDIR}/traefik/rules.toml:/rules.toml
+      - ${USERDIR}/traefik/acme.json:/acme.json
+    environment:
+      - "CF_API_EMAIL=*email*"
+      - "CF_API_KEY=*cloudflareapi*"

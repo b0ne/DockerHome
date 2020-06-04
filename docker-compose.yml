@@ -1,0 +1,86 @@
+version: '3'
+services:
+  ombi:
+    image: linuxserver/ombi:arm32v7-latest
+    container_name: ombi
+    environment:
+      - TZ=${TZ}
+    volumes:                                                                                                                  
+      - ${USERDIR}/ombi/config:/config
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+   
+  ddclient:
+    container_name: ddclient
+    image: linuxserver/ddclient:arm32v7-latest
+    restart: unless-stopped
+    volumes:
+      - ${USERDIR}/ddclient:/config
+    environment:
+      - TZ=${TZ}
+      - PUID=1000
+      - PGID=1000
+  
+  resilio:
+    image: linuxserver/resilio-sync:arm32v7-latest
+    container_name: resilio
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:    
+      - ${USERDIR}/resilio:/config  
+      - ${USERSHAREDIR}/Torrent/downloads:/downloads
+      - ${USERSHAREDIR}/Torrent/sync:/sync
+    ports:
+      - 8888:8888
+      - 5555:5555
+    restart: unless-stopped
+
+  ouroboros:
+    container_name: ouroboros
+    hostname: ouroboros
+    image: pyouroboros/ouroboros
+    environment:
+      - CLEANUP=true
+      - INTERVAL=3600
+      - LOG_LEVEL=info
+      - SELF_UPDATE=true
+      - IGNORE=mongo influxdb postgres mariadb
+      - TZ=America/Montreal
+      - DOCKER_SOCKETS="unix://var/run/docker.sock tcp://192.168.2.145:2375"
+      - NOTIFIERS=**
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
+  bitwarden:
+    container_name: bitwarden
+    image: bitwardenrs/server:raspberry
+    environment:
+      - ADMIN_TOKEN=**
+      - SIGNUPS_ALLOWED=false
+      - DOMAIN=**
+    volumes:
+      - ${USERDIR}/bitwardenrs:/data/
+    ports:
+      - 80:80 
+      - 443:80
+    restart: unless-stopped
+
+  bazarr:
+    container_name: bazarr
+    image: linuxserver/bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - UMASK_SET=022
+    ports:
+      - 6767:6767
+    volumes:
+      - ${USERDIR}/bazarr:/config
+      - ${USERSHAREDIR}/Video/Movie:/movies
+      - ${USERSHAREDIR}/Video/Serie:/tv
+    restart: unless-stopped
